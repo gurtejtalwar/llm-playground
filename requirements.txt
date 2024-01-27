@@ -1,3 +1,5 @@
 langchain
 python-dotenv
 openai
+fastapi
+uvicorn
