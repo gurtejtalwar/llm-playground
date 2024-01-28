@@ -1,5 +1,10 @@
 langchain
-python-dotenv
 openai
+chromadb
 fastapi
 uvicorn
+pypdf
+python-dotenv
+python-multipart
+tiktoken
+sentence-transformers

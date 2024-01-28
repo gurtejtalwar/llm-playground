@@ -1,5 +1,6 @@
 import datetime
-
+import tempfile
+import os
 from langchain.llms import CTransformers
 from langchain.chat_models import ChatOpenAI
 #from langchain.llms import OpenAI
@@ -16,21 +17,32 @@ from langchain.text_splitter import CharacterTextSplitter
 from langchain.document_loaders import PyPDFLoader
 
 class DocumentProcessor:
-    def __init__(self, upload_document):
+    def process_document(self, upload_document):
+        print ("Entered Process Document")
         self.upload_document = upload_document
-
-    def process_document(self):
-        pdf_loader = PyPDFLoader(self.upload_document)
+        temp_dir = tempfile.mkdtemp()
+        temp_file_path = os.path.join(temp_dir, upload_document.filename)
+        with open(temp_file_path, "wb") as temp_file:
+            temp_file.write(upload_document.file.read())
+        print(temp_file_path)
+        pdf_loader = PyPDFLoader(temp_file_path)
         raw_documents = pdf_loader.load()
+        print("Documents loaded")
         text_splitter = CharacterTextSplitter(chunk_size=500, chunk_overlap=50)
         chunks = text_splitter.split_documents(raw_documents)
+        print("Documents split")
         timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
         self.persist_directory = f'db_{timestamp}'
+        os.remove(temp_file_path)
+        os.rmdir(temp_dir)
         return chunks, self.persist_directory
 
-    def create_and_persist_Chroma(self, chunks, embedding):
-        vectordb = Chroma.from_documents(documents=chunks, embedding=embedding, persist_directory=self.persist_directory)
+    def create_and_persist_Chroma(self, chunks, embedding, persist_directory):
+        print ("Entered Create and Persist Chroma")
+        vectordb = Chroma.from_documents(documents=chunks, embedding=embedding, persist_directory=persist_directory)
+        print ("Chroma Created")
         vectordb.persist()
+        print ("Chroma Created and Persisted")
         return Chroma(persist_directory=self.persist_directory, embedding_function=embedding)
 
 class EmbeddingInitializer:
@@ -49,7 +61,7 @@ class VectorstoreInitializer:
 
 class LLMInitializer:
     @staticmethod
-    def initialize_gpt3_5():
+    def initialize_gpt():
         return ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0, max_tokens=1000)
 
     @staticmethod
