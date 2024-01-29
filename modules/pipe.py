@@ -18,7 +18,6 @@ from langchain.document_loaders import PyPDFLoader
 
 class DocumentProcessor:
     def process_document(self, upload_document):
-        print ("Entered Process Document")
         self.upload_document = upload_document
         temp_dir = tempfile.mkdtemp()
         temp_file_path = os.path.join(temp_dir, upload_document.filename)
@@ -32,13 +31,12 @@ class DocumentProcessor:
         chunks = text_splitter.split_documents(raw_documents)
         print("Documents split")
         timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
-        self.persist_directory = f'db_{timestamp}'
+        self.persist_directory = f'VectorDB/db_{timestamp}'
         os.remove(temp_file_path)
         os.rmdir(temp_dir)
         return chunks, self.persist_directory
 
     def create_and_persist_Chroma(self, chunks, embedding, persist_directory):
-        print ("Entered Create and Persist Chroma")
         vectordb = Chroma.from_documents(documents=chunks, embedding=embedding, persist_directory=persist_directory)
         print ("Chroma Created")
         vectordb.persist()
