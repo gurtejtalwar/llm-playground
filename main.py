@@ -57,11 +57,12 @@ async def process_query(upload_document: UploadFile = File(...),
     selected_llms: List[str] = Form(...),
     temperature: float = Form(...),
     max_tokens: int = Form(...),
-    top_k: int = Form(...),
-    top_p: float = Form(...),
+    #top_k: int = Form(...),
+    #top_p: float = Form(...),
     selected_embeddings: str = Form(...),
     selected_vector_databases: str = Form(...)):
-    def handle_user_selection(upload_document, user_query, selected_llms, temperature, max_tokens, top_k, top_p, selected_embeddings, selected_vector_databases):
+
+    def handle_user_selection(upload_document, user_query, selected_llms, temperature, max_tokens, selected_embeddings, selected_vector_databases):
         if "gpt3.5" in selected_llms:
             if "openai" in selected_embeddings and "Chroma" in selected_vector_databases:
                 embedding = embeddings_initializer.initialize_openai()
@@ -69,7 +70,7 @@ async def process_query(upload_document: UploadFile = File(...),
                 vectordb = document_processor.create_and_persist_Chroma(chunks, embedding, persist_directory)
                 retriever = vectorstore_initializer.initialize_retriever(vectordb)
                 prompt = ChatPromptTemplate.from_template(template)
-                llm = llm_initializer.initialize_gpt()
+                llm = llm_initializer.initialize_gpt(temperature=temperature, max_tokens=max_tokens)
                 rag_chain = chain_initializer.initialize_rag_chain(retriever, prompt, llm)
                 result = rag_chain.invoke(user_query) if retriever else llm.generate(user_query)
             elif "huggingface" in selected_embeddings and "Chroma" in selected_vector_databases:
@@ -78,9 +79,9 @@ async def process_query(upload_document: UploadFile = File(...),
                 vectordb = document_processor.create_and_persist_Chroma(chunks, embedding, persist_directory)
                 retriever = vectorstore_initializer.initialize_retriever(vectordb)
                 prompt = ChatPromptTemplate.from_template(template)
-                llm = llm_initializer.initialize_gpt()
+                llm = llm_initializer.initialize_gpt(temperature=temperature, max_tokens=max_tokens)
                 rag_chain = chain_initializer.initialize_rag_chain(retriever, prompt, llm)
-                result = rag_chain.invoke(user_query) if retriever else llm.generate(user_query)
+                result = rag_chain.invoke(user_query) #if retriever else llm.generate(user_query)
         elif "Llama" in selected_llms:
             if "openai" in selected_embeddings and "Chroma" in selected_vector_databases:
                 embedding = embeddings_initializer.initialize_openai()
@@ -88,7 +89,7 @@ async def process_query(upload_document: UploadFile = File(...),
                 vectordb = document_processor.create_and_persist_Chroma(chunks, embedding, persist_directory)
                 retriever = vectorstore_initializer.initialize_retriever(vectordb, k=2)
                 prompt = ChatPromptTemplate.from_template(template)
-                llm = llm_initializer.initialize_llama()
+                llm = llm_initializer.initialize_llama(temperature=temperature, max_tokens=max_tokens)
                 rag_chain = chain_initializer.initialize_rag_chain(retriever, prompt, llm)
                 result = rag_chain.invoke(user_query) if retriever else llm.generate(user_query)
             elif "huggingface" in selected_embeddings and "Chroma" in selected_vector_databases:
@@ -97,7 +98,7 @@ async def process_query(upload_document: UploadFile = File(...),
                 vectordb = document_processor.create_and_persist_Chroma    (chunks, embedding, persist_directory)
                 retriever = vectorstore_initializer.initialize_retriever(vectordb, k=2)
                 prompt = ChatPromptTemplate.from_template(template)
-                llm = llm_initializer.initialize_llama()
+                llm = llm_initializer.initialize_llama(temperature=temperature, max_tokens=max_tokens)
                 rag_chain = chain_initializer.initialize_rag_chain(retriever, prompt, llm)
                 result = rag_chain.invoke(user_query) if retriever else llm.generate(user_query)
         else:
@@ -105,9 +106,8 @@ async def process_query(upload_document: UploadFile = File(...),
 
         conversation_history.append((user_query, result))
         return conversation_history
+    
     result = handle_user_selection(
         upload_document, user_query, selected_llms,
-        temperature, max_tokens, top_k, top_p,
-        selected_embeddings, selected_vector_databases
-    )
-    return JSONResponse(content={"result": result})
+        temperature, max_tokens, selected_embeddings, selected_vector_databases)
+    return result

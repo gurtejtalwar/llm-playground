@@ -10,7 +10,7 @@ from langchain.embeddings import HuggingFaceEmbeddings
 
 from langchain.vectorstores import Chroma
 #from langchain.chains import RetrievalQA
-from langchain.schema.runnable import RunnablePassthrough
+from langchain.schema.runnable import RunnablePassthrough, RunnableParallel
 from langchain.schema.output_parser import StrOutputParser
 
 from langchain.text_splitter import CharacterTextSplitter
@@ -59,14 +59,28 @@ class VectorstoreInitializer:
 
 class LLMInitializer:
     @staticmethod
-    def initialize_gpt(max_tokens=1000, temperature=0.7):
-        return ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0, max_tokens=1000)
+    def initialize_gpt(temperature=0.7, max_tokens=1000):
+        return ChatOpenAI(model_name="gpt-3.5-turbo", temperature=temperature, max_tokens=max_tokens)
 
     @staticmethod
-    def initialize_llama():
-        return CTransformers(model="models/llama-2-7b-chat.ggmlv3.q4_0.bin", model_type="llama", config={'max_new_tokens': 128, 'temperature': 0.01})
+    def initialize_llama(temperature=0.7, max_tokens=1000):
+        return CTransformers(model="models/llama-2-7b-chat.ggmlv3.q4_0.bin", model_type="llama", config={'max_new_tokens': max_tokens, 'temperature': temperature})
 
 class ChainInitializer:
     @staticmethod
+    def format_docs(docs):
+        return "\n\n".join(doc.page_content for doc in docs)
+    
+    @staticmethod
     def initialize_rag_chain(retriever, prompt, llm):
-        return {"context": retriever, "question": RunnablePassthrough()} | prompt | llm | StrOutputParser()
+        print("Initializing RAG Chain")
+        rag_chain_from_docs = (
+        RunnablePassthrough.assign(context=(lambda x: ChainInitializer.format_docs(x["context"])))
+        | prompt
+        | llm
+        | StrOutputParser())
+        
+        rag_chain = RunnableParallel(
+        {"context": retriever, "question": RunnablePassthrough()}
+    ).assign(answer=rag_chain_from_docs)
+        return rag_chain
