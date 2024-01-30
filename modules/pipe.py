@@ -59,7 +59,7 @@ class VectorstoreInitializer:
 
 class LLMInitializer:
     @staticmethod
-    def initialize_gpt():
+    def initialize_gpt(max_tokens=1000, temperature=0.7):
         return ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0, max_tokens=1000)
 
     @staticmethod
